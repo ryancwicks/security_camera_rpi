@@ -1,0 +1,21 @@
+version: "3.4"
+services:
+  hostapd:
+    build: hostapd_docker
+    image: "hostapd"
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    stop_grace_period: 2m
+    volumes:
+      - ./hostapd_docker/confs/hostapd_confs/wpa2.conf:/etc/hostapd/hostapd.conf
+    restart: always
+  dhcpd:
+    build: dhcp_docker/docker-dhcpd-master/
+    image: "dhcpd"
+    volumes: 
+       - ./dhcp_docker/data:/data 
+    network_mode: host
+    restart: always
+    depends_on: 
+      - hostapd
