@@ -56,12 +56,29 @@ sudo pip3 install docker-compose
 
 ### Hard Drive Setup
 
+Determine the if the USB drive is using UAS:
+
+```
+lsusb -t
+```
+
+Look for driver UAS. If it is there, it needs to be disabled. Use lsusb to get the id.
+
+Edit the /boot/cmdline.txt file and add the following to the start of the line of parameters:
+
+```
+usb-storage.quirks=0bc2:ac39:u
+```
+
+Then restart the system.
+
 Create a ext4 partition on the large data hard drive (a 5TG USB3 drive in my case), first deleting the existing partition.
 
 ```
 sudo fdisk /dev/sda #In my case
-#delete existing partitions and create a new one that fills the drive.
+#delete existing partitions and create a new one of 10 GB and another filling the rest of the drive.
 mkfs.ext4 -T largefile -m 1 /dev/sdc1
+mkfs.ext4 -T largefile -m 1 /dev/sdc2
 ```
 
 Now create a mount point and set it up. First get the UUID for the USB drive:
@@ -73,6 +90,7 @@ sudo blkid
 Now add this line to fstab, and follow the next steps to create and test the mount point.
 
 ```
+sudo mkdir /var/lib/moonfire-nvr
 sudo mkdir /media/nvr
 sudo vi /etc/fstab
 ```
@@ -80,7 +98,8 @@ sudo vi /etc/fstab
 Add the following line to the bottom of the fstab file:
 
 ```
-UUID=<Your UUID> /media/nvr ext4 nofail,noatime,lazytime,data=writeback,journal_async_commit  0  2
+UUID=<Your UUID for the small drive> /var/lib/moonfire-nvr ext4 nofail,noatime,lazytime,data=writeback,journal_async_commit  0  2
+UUID=<Your UUID for the large drive> /media/nvr ext4 nofail,noatime,lazytime,data=writeback,journal_async_commit  0  2
 ```
 
 You should now be able to mount the /media/nvr directory.
@@ -93,10 +112,26 @@ Create the moonfire-nvr user on the USB drive. This will prevent the SD card fro
 sudo useradd --user-group --create-home --home /var/lib/moonfire-nvr moonfire-nvr
 '''
 
+Adjust the time zone and copy the conf_files/nvr to /usr/local/bin/nvr.
+
+Generate the database for nvr by running:
+
+```
+sudo nvr init
+```
+
+### Setting up the data store
+
+```
+sudo install -d -o moonfire-nvr -g moonfire-nvr -m 700 /media/nvr/sample
+sudo chown -R moonfire-nvr:moonfire-nvr /media/nvr
+```
+
+Now that the mount is setup, you need to modify the /usr/local/bin/nvr script to properly start the nvr (uncomment the mountpoints under "Additional Mount Lines"
 
 ### Network Setup
 
-
+Copy the interfaces file from hostapd_docker/confs/interfaces to /etc/interfaces. Restart the networking.
 
 ### Docker build
 
@@ -110,6 +145,10 @@ docker-compose build
 ### HostAPD Server 
 
 The HostAPD wifi server is found under ./hostapd_docker. WIFI network ranges are already set up. DHCP is handled by the DHCP docker container.
+
+You need to set up these two environment variables on the base system:
+  - WPA2_ESSID
+  - WPA2_PASSWORD
 
 To build this container, I needed to do the following:
 
@@ -129,7 +168,48 @@ The dhcp configuration file is found under ./dhcp_server/data. The dhcpd.conf fi
 
 The ip ranges are set up for the wlan0 network as well.
 
+### Running DHCP and HostAPD with docker-compose
+
+Run 
+
+```
+docker-compose up -d
+```
+
+This will restart the services on startup.
+
 ### Cameras
 
 Each of the cameras is setup to use DHCP to get it's IP address.
 
+To get information for setting up moonfire, I used the onvif-rs rust program.
+
+```
+git clone https://github.com/lumeohq/onvif-rs.git
+cd onvif-rs
+cargo run --example camera --  get-stream-uris --uri=http://192.168.42.11:8000 --username=<?> --password=<?>
+```
+
+Or use the print_cam_info.py to query to RTSP streams to use in the nvr setup.
+
+### Setting Up Moonfire NVR
+
+To start the configuration program:
+
+```
+sudo nvr config 2>debug-log
+```
+
+Create a new storage directory under /media/nvr/sample, and set up all your cameras appropriately. Following the moonfire-nvr instruction, set the flush_if_sec to 120.
+
+To start the nvr docker container run 
+
+```
+sudo nvr run
+```
+
+This will restart the container every time the system starts up.
+
+### Still to do:
+
+Set up RTC, Setup server as NTP server for camera time stamping, set up display and button server, set up persistent capturing on power cycle (if needed, might already be in database.)

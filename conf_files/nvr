@@ -1,0 +1,61 @@
+#!/bin/bash -e
+
+# Set your timezone here.
+tz="America/Toronto"
+
+# or eg "scottlamb/moonfire-nvr:v0.7.1" to specify a particular version.
+image_name="scottlamb/moonfire-nvr:latest"
+container_name="moonfire-nvr"
+common_docker_run_args=(
+        --mount=type=bind,source=/var/lib/moonfire-nvr,destination=/var/lib/moonfire-nvr
+
+        # Add additional mount lines here for each sample file directory
+        # outside of /media/nvr/moonfire-nvr, eg:
+        --mount=type=bind,source=/media/nvr/sample,destination=/media/nvr/sample
+
+        --user="$(id -u moonfire-nvr):$(id -g moonfire-nvr)"
+
+        # This avoids errors with broken seccomp on Raspberry Pi OS.
+        --security-opt=seccomp:unconfined
+
+        # docker's default log driver won't rotate logs properly, and will throw
+        # away logs when you destroy and recreate the container. Using journald
+        # solves these problems.
+        # https://docs.docker.com/config/containers/logging/configure/
+        --log-driver=journald
+        --log-opt="tag=moonfire-nvr"
+
+        --env=RUST_BACKTRACE=1
+        --env=TZ=":${tz}"
+)
+
+case "$1" in
+run)
+        shift
+        exec docker run \
+                --detach=true \
+                --restart=unless-stopped \
+                "${common_docker_run_args[@]}" \
+                --network=host \
+                --name="${container_name}" \
+                "${image_name}" \
+                run \
+                --allow-unauthenticated-permissions='view_video: true' \
+                "$@"
+        ;;
+start|stop|logs|rm)
+        exec docker "$@" "${container_name}"
+        ;;
+pull)
+        exec docker pull "${image_name}"
+        ;;
+*)
+        exec docker run \
+                --interactive=true \
+                --tty \
+                --rm \
+                "${common_docker_run_args[@]}" \
+                "${image_name}" \
+                "$@"
+        ;;
+esac

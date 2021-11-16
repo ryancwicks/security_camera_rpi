@@ -19,3 +19,9 @@ services:
     restart: always
     depends_on: 
       - hostapd
+  ntp:
+    build: ntp_docker/
+    image: "ntp"
+    volumes:
+      - ./ntp_docker/conf:/etc/chrony
+    restart: always
