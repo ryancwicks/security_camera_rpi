@@ -7,6 +7,9 @@ services:
     cap_add:
       - NET_ADMIN
     stop_grace_period: 2m
+    environment:
+      - WPA2_ESSID=${WPA2_ESSID}
+      - WPA2_PASSWORD=${WPA2_PASSWORD}
     volumes:
       - ./hostapd_docker/confs/hostapd_confs/wpa2.conf:/etc/hostapd/hostapd.conf
     restart: always
@@ -22,6 +25,10 @@ services:
   ntp:
     build: ntp_docker/
     image: "ntp"
+    cap_add:
+      - SYS_TIME
+    ports: 
+      - "123:123/udp"
     volumes:
       - ./ntp_docker/conf:/etc/chrony
     restart: always

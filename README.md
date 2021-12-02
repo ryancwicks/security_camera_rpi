@@ -51,6 +51,7 @@ sudo apt install docker-ce docker-ce-cli containerd.io
 sudo usermod -aG docker $USER
 sudo apt install libffi-dev libssl-dev python3 python3-pip
 sudo pip3 install docker-compose
+sudo apt install i2c-tools
 ```
 
 
@@ -132,6 +133,47 @@ Now that the mount is setup, you need to modify the /usr/local/bin/nvr script to
 ### Network Setup
 
 Copy the interfaces file from hostapd_docker/confs/interfaces to /etc/interfaces. Restart the networking.
+
+### Setting up the RTC
+
+I added a DS1307 RTC module (instruction from [here](https://wiki.52pi.com/index.php?title=DS1307_RTC_Module_with_BAT_for_Raspberry_Pi_SKU:_EP-0059)). 
+
+please ensure that /boot/config.txt file include two paramaters:
+
+```
+dtoverlay=i2c-rtc,ds1307 
+dtparam=i2c_arm=on
+```
+
+After that, please make sure you have disabled the "fake hwclock" which interferes with the 'real' hwclock
+
+```
+sudo apt-get -y remove fake-hwclock
+sudo update-rc.d -f fake-hwclock remove
+```
+
+Now with the fake-hw clock off, you can start the original 'hardware clock' script.
+Edit the script file /lib/udev/hwclock-set with nano or vim editor and comment out these three lines:
+
+```
+if [ -e /run/systemd/system ] ; then
+ exit 0
+fi
+```
+
+Restart and then verify the RTC is found using i2cdetect -y 1.
+
+Set the clock time with 
+
+```
+sudo hwclock -w
+```
+
+Get the clock time with 
+
+```
+sudo hwclock -r
+```
 
 ### Docker build
 
