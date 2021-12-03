@@ -17,8 +17,8 @@ ADD confs/start.sh /start.sh
 ENV WPA2_ESSID $WPA2_ESSID
 ENV WPA2_PASSWORD $WPA2_PASSWORD
 
-RUN sed -i -s "s/^ssid=.*/ssid=$WPA2_ESSID/" /etc/hostapd/hostapd.conf
-RUN sed -i -s "s/^password=.*/password=$WPA2_PASSWORD/" /etc/hostapd/hostapd.conf
+#RUN sed -i -s "s/^ssid=.*/ssid=${WPA2_ESSID}/" /etc/hostapd/hostapd.conf
+#RUN sed -i -s "s/^password=.*/password=${WPA2_PASSWORD}/" /etc/hostapd/hostapd.conf
 
 
 CMD ["/bin/sh", "/start.sh"]

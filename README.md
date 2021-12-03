@@ -255,3 +255,13 @@ This will restart the container every time the system starts up.
 ### Still to do:
 
 Set up RTC, Setup server as NTP server for camera time stamping, set up display and button server, set up persistent capturing on power cycle (if needed, might already be in database.)
+
+### Testing the OLED display
+
+These tests are taken from [here](https://learn.adafruit.com/monochrome-oled-breakouts/python-usage-2)
+
+```
+sudo apt install libtiff-dev libopenjp2-7-dev
+pip3 install adafruit-circuitpython-ssd1306 pillow
+python test_screen.py
+```

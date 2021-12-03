@@ -8,8 +8,8 @@ services:
       - NET_ADMIN
     stop_grace_period: 2m
     environment:
-      - WPA2_ESSID=${WPA2_ESSID}
-      - WPA2_PASSWORD=${WPA2_PASSWORD}
+      - WPA2_ESSID=${WPA2_ESSID:-cottagewifi}
+      - WPA2_PASSWORD=${WPA2_PASSWORD:-password12345}
     volumes:
       - ./hostapd_docker/confs/hostapd_confs/wpa2.conf:/etc/hostapd/hostapd.conf
     restart: always

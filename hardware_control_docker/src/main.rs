@@ -10,7 +10,7 @@
 //!  |------------|----------|--------------|
 //!  | Pin      | GPIO   | Indicator LED driving the base of an NPN transistor (Inverted Logic) |
 //!  | Pin      | GPIO   | Start/Top Recording button (pulled high normally, pulled low when pressed, not debounced) |
-//!  | Pin 21     | SPI_MISO (GPIO09) | To SSD1306 MOSI (DATA) |
+//!  | Pin 21     | SPI_MOSI (GPIO10) | To SSD1306 DATA |
 //!  | Pin 23     | SPI_CLK (GPIO11) | To SSD1306 SCK  |
 //!  | Pin 24     | SPI_CE_0_N (GPIO08) | Chip Select for SSD1306 |
 //!  | Pin 17     | 3.3V     | Powers the LED, switch and Display (Vin)|
