@@ -22,21 +22,29 @@
 //! 
 
 use tokio::sync::mpsc;
-use tokio::time::{sleep, Duration};
-use tokio::signal;
 
 mod oled_display;
 mod led_control;
 mod button_handler;
-use oled_display::{display_task, DisplayCommand};
-use led_control::{led_task, LEDCommand};
+pub mod disk_monitor;
+
+use oled_display::display_task;
+use led_control::led_task;
 use button_handler::{button_task, ButtonCommand};
+use disk_monitor::DiskMonitor;
 
 #[derive(Debug)]
 enum Commands {
     StartRecording,
     StopRecording,
     Shutdown,
+}
+
+#[derive(Debug)]
+pub enum SystemState {
+    Idle,
+    Recording,
+    SystemError(String),
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -52,9 +60,11 @@ async fn main() {
     tokio::spawn(async move {
         led_task(rx_led).await;
     });
+
     tokio::spawn(async move {
         display_task(rx_screen).await;
     });
+
     tokio::spawn(async move {
         button_task(tx_button).await;
     });
@@ -66,7 +76,9 @@ async fn main() {
     shutdown_signal().await;
 }
 
-async fn manager(led_tx: mpsc::Sender<LEDCommand>, display_tx: mpsc::Sender<DisplayCommand>, button_rx: mpsc::Receiver<ButtonCommand>) {
+async fn manager(led_tx: mpsc::Sender<SystemState>, display_tx: mpsc::Sender<String>, button_rx: mpsc::Receiver<ButtonCommand>) {
+    let mut system_state = SystemState::Idle;
+
     loop {
 
     }
@@ -78,3 +90,4 @@ async fn shutdown_signal() {
         .await
         .expect("failed to install CTRL+C signal handler");
 }
+
