@@ -199,6 +199,12 @@ wget http://ftp.de.debian.org/debian/pool/main/libs/libseccomp/libseccomp2_2.5.1
 dpkg -i libseccomp2_2.5.1-1_armhf.deb
 ```
 
+Once you copy this over to the system, you need to update the wpa2.conf file to fill in the variables:
+
+```
+envsubst < hostapd_docker/confs/hostapd_confs/wpa2_git.conf > hostapd_docker/confs/hostapd_confs/wpa2.conf
+```
+
 ### DHCP Server
 
 The dhcp configuration file is found under ./dhcp_server/data. The dhcpd.conf file was modified to support the (currently) three camera I have available based on the mac address:
@@ -234,6 +240,14 @@ cargo run --example camera --  get-stream-uris --uri=http://192.168.42.11:8000 -
 
 Or use the print_cam_info.py to query to RTSP streams to use in the nvr setup.
 
+Also set the system to use NTP to set up the clock. These cameras are limited in that they have a fixed number of NTP servers they can connect to. To get around this, set the servers hosts file to include the entry:
+
+```
+192.168.42.1  pool.ntp.org
+```
+
+This will force the camera to use the servers time.
+
 ### Setting Up Moonfire NVR
 
 To start the configuration program:
@@ -265,3 +279,33 @@ sudo apt install libtiff-dev libopenjp2-7-dev
 pip3 install adafruit-circuitpython-ssd1306 pillow
 python test_screen.py
 ```
+
+### Setting up a Local Docker Repository
+
+Run a local registry:
+
+```
+docker run -d -p 5000:5000 --restart=always --name registry registry:2
+```
+
+You also need to set up the raspberry pi to allow unsecure downloads by editing the /etc/docker/daemon.json with:
+
+```
+{
+  "insecure-registries" : ["myregistrydomain.com:5000"]
+}
+```
+
+After building an image, you can tag and upload it to the local repository and then download it on the Raspberry Pi device.
+
+```
+docker build . -t <server_ip>:5000/my_image
+docker push <server_ip>:5000/my_image
+docker pull <server_ip>:5000/my_image
+```
+
+You can also use the docker save and load commands to create tar.gz images that can be copies manually.
+
+### Building and Deploying Rust Hardware Control form x86
+
+Instruction were found [here](https://medium.com/swlh/compiling-rust-for-raspberry-pi-arm-922b55dbb050).

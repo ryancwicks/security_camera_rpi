@@ -3,7 +3,7 @@ use tokio::sync::mpsc;
 use crate::SystemState;
 
 
-pub async fn led_task (mut led_rx: mpsc::Receiver<SystemState>) {
+pub async fn _led_task (mut led_rx: mpsc::Receiver<SystemState>) {
     let mut led_state = SystemState::Idle;
 
     let mut led_cycle_count = 0;

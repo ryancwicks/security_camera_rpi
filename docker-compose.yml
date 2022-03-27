@@ -32,3 +32,5 @@ services:
     volumes:
       - ./ntp_docker/conf:/etc/chrony
     restart: always
+
+    

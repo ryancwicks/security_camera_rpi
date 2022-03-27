@@ -10,6 +10,7 @@ use embedded_graphics::{
     text::{Baseline, Text},
     
 };
+//use std::fmt::Write;
 use std::io;
 use spidev::{ SpidevOptions, SpiModeFlags};
 use gpio_cdev::{Chip, LineRequestFlags};
@@ -20,7 +21,8 @@ fn create_spi() -> io::Result<Spidev> {
     let mut spi = Spidev::open("/dev/spidev0.0")?;
     let options = SpidevOptions::new()
          .bits_per_word(8)
-         .max_speed_hz(20_000)
+         .lsb_first(false)
+         .max_speed_hz(400_000)
          .mode(SpiModeFlags::SPI_MODE_0)
          .build();
     spi.configure(&options)?;
@@ -36,40 +38,51 @@ pub async fn display_task ( mut manager_tx: mpsc::Receiver<String>) {
     
     let spi = create_spi().unwrap();
 
-    //Need to setup d/c (gpio08) pin, reset pin (gpio24) and CS pin (gpio23).
+    //Need to setup d/c (gpio23) pin, reset pin (gpio24) and CS pin (gpio25).
     // /dev/gpiochip0 maps to the driver for the SoC (builtin) GPIO controller.
     let mut chip = Chip::new("/dev/gpiochip0").unwrap();
     let dc_cdev = chip
-        .get_line(8).unwrap()
+        .get_line(23).unwrap()
         .request(LineRequestFlags::OUTPUT, 0, "display-dc").unwrap();
     let dc = CdevPin::new(dc_cdev).unwrap();
     let cs_cdev = chip
-        .get_line(23).unwrap()
+        .get_line(25).unwrap()
         .request(LineRequestFlags::OUTPUT, 1, "display-cs").unwrap();
     let cs = CdevPin::new(cs_cdev).unwrap();
     let rst_cdev = chip
         .get_line(24).unwrap()
-        .request(LineRequestFlags::OUTPUT, 0, "display-rst").unwrap();
+        .request(LineRequestFlags::OUTPUT, 1, "display-rst").unwrap();
     let _rst = CdevPin::new(rst_cdev).unwrap();
 
     let interface = display_interface_spi::SPIInterface::new(spi, dc, cs);
     let mut display = Ssd1306::new(interface, DisplaySize128x32, DisplayRotation::Rotate0)
+        //.into_terminal_mode();
         .into_buffered_graphics_mode();
 
     display.init().unwrap();
 
+    log::info!("Display Initialized.");
     loop {
         match manager_tx.recv().await {
             Some(val) => {
+                display.clear();
+
                 //Has to be reinitialized each time because MonoTextStyle isn't send, can't exist across an await.
                 let text_style = MonoTextStyleBuilder::new()
                     .font(&FONT_6X10)
                     .text_color(BinaryColor::On)
+                    .background_color(BinaryColor::Off)
                     .build();
-                
+
                 Text::with_baseline(&val, Point::zero(), text_style, Baseline::Top)
                     .draw(&mut display)
                     .unwrap();
+
+                //display.write_str(&val).unwrap();
+
+                display.flush().unwrap();
+
+                log::info!("\nDisplaying: {}", val);
             },
             None =>  () 
         };
